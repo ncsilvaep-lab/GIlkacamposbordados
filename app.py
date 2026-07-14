@@ -9,7 +9,7 @@ st.set_page_config(page_title="Gilka Campos Bordados", page_icon="🪡", layout=
 # ----------------------------------------
 # CONFIGURAÇÃO DO GOOGLE DRIVE
 # ----------------------------------------
-PASTA_DRIVE = "/content/drive/MyDrive/Sistema_Gilka_Bordados"
+PASTA_DRIVE = "dados_sistema"
 os.makedirs(PASTA_DRIVE, exist_ok=True) # Cria a pasta no Drive se não existir
 
 ARQ_ESTOQUE = f"{PASTA_DRIVE}/estoque.csv"
