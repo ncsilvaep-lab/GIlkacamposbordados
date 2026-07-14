@@ -13,8 +13,8 @@ st.set_page_config(page_title="Gilka Campos Bordados", page_icon="🪡", layout=
 # CONFIGURAÇÃO DE E-MAIL (REMETENTE)
 # ----------------------------------------
 # VOCÊ PRECISA PREENCHER AQUI COM SEU E-MAIL E SENHA DE APLICATIVO DO GMAIL
-EMAIL_REMETENTE = "seu_email@gmail.com" 
-SENHA_APP = "sua_senha_de_app_aqui"
+EMAIL_REMETENTE = "natanaelcampossilva2006@gmail.com" 
+SENHA_APP = "ezuhuoqmlbdfiqwo"
 
 def enviar_codigo_email(email_destino, codigo):
     try:
