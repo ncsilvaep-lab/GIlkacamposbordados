@@ -12,8 +12,7 @@ st.set_page_config(page_title="Gilka Campos Bordados", page_icon="🪡", layout=
 # ----------------------------------------
 # CONFIGURAÇÃO DE E-MAIL (REMETENTE)
 # ----------------------------------------
-# VOCÊ PRECISA PREENCHER AQUI COM SEU E-MAIL E SENHA DE APLICATIVO DO GMAIL
-EMAIL_REMETENTE = "natanaelcampossilva2006@gamil.com" 
+EMAIL_REMETENTE = "natanaelcampossilva2006@gmail.com" 
 SENHA_APP = "bwpagsnxwcsxhlsm"
 
 def enviar_codigo_email(email_destino, codigo):
@@ -23,7 +22,6 @@ def enviar_codigo_email(email_destino, codigo):
         msg['From'] = EMAIL_REMETENTE
         msg['To'] = email_destino
 
-        # Conecta ao servidor do Gmail
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(EMAIL_REMETENTE, SENHA_APP)
         server.send_message(msg)
@@ -36,14 +34,13 @@ def enviar_codigo_email(email_destino, codigo):
 # CONFIGURAÇÃO DE ARQUIVOS LOCAIS
 # ----------------------------------------
 PASTA_DRIVE = "dados_sistema"
-os.makedirs(PASTA_DRIVE, exist_ok=True) # Cria a pasta se não existir
+os.makedirs(PASTA_DRIVE, exist_ok=True) 
 
 ARQ_ESTOQUE = f"{PASTA_DRIVE}/estoque.csv"
 ARQ_VENDAS = f"{PASTA_DRIVE}/vendas.csv"
 ARQ_FINANCEIRO = f"{PASTA_DRIVE}/financeiro.csv"
-ARQ_USUARIOS = f"{PASTA_DRIVE}/usuarios.csv" # NOVO ARQUIVO DE USUÁRIOS
+ARQ_USUARIOS = f"{PASTA_DRIVE}/usuarios.csv" 
 
-# Funções para Salvar e Carregar dados
 def carregar_dados(arquivo):
     if os.path.exists(arquivo):
         return pd.read_csv(arquivo).to_dict('records')
@@ -53,7 +50,7 @@ def salvar_dados(dados, arquivo):
     df = pd.DataFrame(dados)
     df.to_csv(arquivo, index=False)
 
-# 2. Inicialização do Banco de Dados Permanentemente
+# 2. Inicialização do Banco de Dados
 if 'logado' not in st.session_state:
     st.session_state.logado = False
 if 'usuario_logado' not in st.session_state:
@@ -66,12 +63,10 @@ if 'financeiro' not in st.session_state:
     st.session_state.financeiro = carregar_dados(ARQ_FINANCEIRO)
 if 'usuarios' not in st.session_state:
     st.session_state.usuarios = carregar_dados(ARQ_USUARIOS)
-    # Se não tiver nenhum usuário, cria o usuário padrão "gilka"
     if len(st.session_state.usuarios) == 0:
         st.session_state.usuarios.append({'email': 'admin', 'usuario': 'gilka', 'senha': '123'})
         salvar_dados(st.session_state.usuarios, ARQ_USUARIOS)
 
-# Variáveis de controle para a tela de cadastro
 if 'etapa_cadastro' not in st.session_state:
     st.session_state.etapa_cadastro = 1
 if 'codigo_gerado' not in st.session_state:
@@ -88,7 +83,6 @@ if not st.session_state.logado:
         
         aba_login, aba_cadastro = st.tabs(["🔐 Entrar", "📝 Cadastrar Novo Usuário"])
 
-        # ABA DE LOGIN
         with aba_login:
             st.write("Faça login para acessar o sistema:")
             usuario = st.text_input("👤 Usuário")
@@ -108,22 +102,17 @@ if not st.session_state.logado:
                 else:
                     st.error("❌ Usuário ou senha incorretos!")
 
-        # ABA DE CADASTRO
         with aba_cadastro:
-            # Etapa 1: Pedir E-mail e Enviar Código
             if st.session_state.etapa_cadastro == 1:
                 st.write("Digite seu e-mail para receber um código de validação:")
                 email_input = st.text_input("📧 Seu E-mail")
                 
-                # ADICIONADO: type="primary" para deixar o botão vermelho
                 if st.button("Enviar Código", type="primary", use_container_width=True):
                     if "@" in email_input and "." in email_input:
-                        # Gera um código de 6 dígitos
                         codigo = str(random.randint(100000, 999999))
                         st.session_state.codigo_gerado = codigo
                         st.session_state.email_temp = email_input
                         
-                        # Tenta enviar o email
                         sucesso_email = enviar_codigo_email(email_input, codigo)
                         
                         if sucesso_email:
@@ -132,12 +121,10 @@ if not st.session_state.logado:
                             st.rerun()
                         else:
                             st.warning(f"Erro ao enviar e-mail. Para testes, seu código é: {codigo}")
-                            # Avança mesmo dando erro apenas para testes
                             st.session_state.etapa_cadastro = 2 
                     else:
                         st.error("Por favor, digite um e-mail válido.")
 
-            # Etapa 2: Validar o Código
             elif st.session_state.etapa_cadastro == 2:
                 st.info(f"Um código de 6 dígitos foi enviado para: {st.session_state.email_temp}")
                 codigo_digitado = st.text_input("🔢 Digite o Código", max_chars=6)
@@ -155,7 +142,6 @@ if not st.session_state.logado:
                     else:
                         st.error("❌ Código Incorreto!")
 
-            # Etapa 3: Criar Usuário e Senha
             elif st.session_state.etapa_cadastro == 3:
                 st.write("Código validado! Agora crie seu acesso:")
                 novo_usuario = st.text_input("👤 Defina um Nome de Usuário")
@@ -163,22 +149,17 @@ if not st.session_state.logado:
                 
                 if st.button("Finalizar Cadastro", type="primary", use_container_width=True):
                     if novo_usuario and nova_senha:
-                        # Salva o novo usuário na lista e no arquivo
                         st.session_state.usuarios.append({
                             'email': st.session_state.email_temp, 
                             'usuario': novo_usuario, 
                             'senha': nova_senha
                         })
                         salvar_dados(st.session_state.usuarios, ARQ_USUARIOS)
-                        
                         st.success("✅ Cadastro concluído! Vá para a aba 'Entrar' e faça login.")
-                        st.session_state.etapa_cadastro = 1 # Reseta para o próximo que for cadastrar
+                        st.session_state.etapa_cadastro = 1 
                     else:
                         st.error("Preencha todos os campos!")
 
-        # -------------------------------------------------------------
-        # ADICIONADO: Assinatura de Desenvolvimento N.campos soluções
-        # -------------------------------------------------------------
         st.markdown("""
             <div style='text-align: center; margin-top: 50px;'>
                 <p style='font-family: "Courier New", Courier, monospace; font-size: 13px; color: #888888; letter-spacing: 0.5px;'>
@@ -186,7 +167,6 @@ if not st.session_state.logado:
                 </p>
             </div>
         """, unsafe_allow_html=True)
-        # -------------------------------------------------------------
 
 # 4. Sistema Principal
 else:
@@ -254,11 +234,26 @@ else:
                         salvar_dados(st.session_state.estoque, ARQ_ESTOQUE)
                         st.success(f"✅ Material '{produto}' salvo!")
 
+        # ATUALIZAÇÃO: Exibição do Estoque Separada
         with aba2:
-            st.subheader("Itens Cadastrados")
             if st.session_state.estoque:
                 df_estoque = pd.DataFrame(st.session_state.estoque)
-                st.dataframe(df_estoque, use_container_width=True)
+                
+                st.subheader("👗 Peças Prontas Disponíveis")
+                df_pecas = df_estoque[df_estoque['Categoria'] == 'Peça Pronta']
+                if not df_pecas.empty:
+                    st.dataframe(df_pecas, use_container_width=True)
+                else:
+                    st.info("Nenhuma peça pronta no estoque.")
+                
+                st.divider()
+
+                st.subheader("🧵 Materiais e Insumos")
+                df_materiais = df_estoque[df_estoque['Categoria'] == 'Material']
+                if not df_materiais.empty:
+                    st.dataframe(df_materiais, use_container_width=True)
+                else:
+                    st.info("Nenhum material cadastrado no estoque.")
             else:
                 st.info("Seu estoque está vazio.")
 
@@ -267,45 +262,124 @@ else:
     # ----------------------------------------
     elif escolha == "💰 Vendas / Pedidos":
         st.header("Gestão de Vendas e Pedidos")
-        aba1, aba2 = st.tabs(["🛒 Registrar Novo Pedido", "🧾 Histórico"])
+        aba1, aba2 = st.tabs(["🛒 Novo Registro", "🧾 Histórico"])
 
         with aba1:
-            with st.form("form_vendas", clear_on_submit=True):
-                col_a, col_b = st.columns(2)
-                nome_cliente = col_a.text_input("Nome do Cliente")
-                data_entrega = col_b.date_input("Data de Entrega")
+            # ATUALIZAÇÃO: Separador de Venda de Estoque e Encomenda
+            tipo_registro = st.radio("O que você deseja registrar?", ["Venda de Estoque (Pronta Entrega)", "Novo Pedido (Encomenda)"], horizontal=True)
+            st.divider()
 
-                st.divider()
-                produto_vendido = st.text_input("Produto/Serviço Encomendado")
+            if tipo_registro == "Venda de Estoque (Pronta Entrega)":
+                # Busca apenas peças prontas que tem quantidade maior que zero
+                pecas_disponiveis = [item for item in st.session_state.estoque if item['Categoria'] == 'Peça Pronta' and str(item['Quantidade']).isdigit() and int(item['Quantidade']) > 0]
+                
+                if not pecas_disponiveis:
+                    st.warning("⚠️ Não há peças prontas com estoque disponível no momento. Cadastre novas peças ou ajuste o estoque.")
+                else:
+                    with st.form("form_venda_estoque", clear_on_submit=True):
+                        col_a, col_b = st.columns(2)
+                        nome_cliente = col_a.text_input("Nome do Cliente")
+                        data_venda = col_b.date_input("Data da Venda")
+                        
+                        # Cria as opções para o menu suspenso (Selectbox)
+                        opcoes_select = {f"{p['Produto']} (Tam: {p['Tamanho']}) - R$ {p['Valor (R$)']} | Disp: {p['Quantidade']} un": p for p in pecas_disponiveis}
+                        
+                        peca_selecionada = st.selectbox("Selecione a Peça do Estoque", list(opcoes_select.keys()))
+                        
+                        col_c, col_d = st.columns(2)
+                        qtd_vendida = col_c.number_input("Quantidade a vender", min_value=1, step=1)
+                        desconto = col_d.number_input("Desconto / Ajuste de valor (Opcional - R$)", min_value=0.0, step=0.5, format="%.2f")
 
-                col_c, col_d = st.columns(2)
-                qtd_vendida = col_c.number_input("Quantidade", min_value=1, step=1)
-                valor_total = col_d.number_input("Valor Total (R$)", min_value=0.0, step=0.5, format="%.2f")
+                        submit_venda = st.form_submit_button("Concluir Venda e Baixar Estoque", type="primary")
 
-                submit_venda = st.form_submit_button("Concluir Venda/Pedido", type="primary")
+                        if submit_venda and nome_cliente:
+                            peca_ref = opcoes_select[peca_selecionada]
+                            
+                            if qtd_vendida > int(peca_ref['Quantidade']):
+                                st.error(f"❌ Estoque insuficiente! Você tem apenas {peca_ref['Quantidade']} unidades em estoque.")
+                            else:
+                                valor_total = (float(peca_ref['Valor (R$)']) * qtd_vendida) - desconto
+                                data_str = data_venda.strftime("%d/%m/%Y")
+                                
+                                # Reduz a quantidade no estoque (dá baixa)
+                                for p in st.session_state.estoque:
+                                    if p == peca_ref:
+                                        p['Quantidade'] = int(p['Quantidade']) - qtd_vendida
+                                        break
+                                
+                                st.session_state.vendas.append({
+                                    'Tipo': 'Venda', 'Data': data_str, 'Cliente': nome_cliente,
+                                    'Produto': peca_ref['Produto'], 'Qtd': qtd_vendida,
+                                    'Total (R$)': valor_total, 'Entrega': 'Pronta Entrega'
+                                })
+                                salvar_dados(st.session_state.vendas, ARQ_VENDAS)
+                                salvar_dados(st.session_state.estoque, ARQ_ESTOQUE)
 
-                if submit_venda and nome_cliente and produto_vendido:
-                    data_venda = datetime.now().strftime("%d/%m/%Y %H:%M")
+                                st.session_state.financeiro.append({
+                                    'Data': data_str, 'Tipo': 'Entrada',
+                                    'Descrição': f"Venda Estoque: {peca_ref['Produto']} ({nome_cliente})", 'Valor (R$)': valor_total
+                                })
+                                salvar_dados(st.session_state.financeiro, ARQ_FINANCEIRO)
 
-                    st.session_state.vendas.append({
-                        'Data': data_venda, 'Cliente': nome_cliente,
-                        'Produto': produto_vendido, 'Qtd': qtd_vendida,
-                        'Total (R$)': valor_total, 'Entrega': data_entrega.strftime("%d/%m/%Y")
-                    })
-                    salvar_dados(st.session_state.vendas, ARQ_VENDAS)
+                                st.success(f"✅ Venda registrada! (R$ {valor_total:.2f}). O estoque foi atualizado automaticamente.")
+                                st.rerun()
 
-                    st.session_state.financeiro.append({
-                        'Data': data_venda, 'Tipo': 'Entrada',
-                        'Descrição': f"Pedido: {produto_vendido} ({nome_cliente})", 'Valor (R$)': valor_total
-                    })
-                    salvar_dados(st.session_state.financeiro, ARQ_FINANCEIRO)
+            elif tipo_registro == "Novo Pedido (Encomenda)":
+                with st.form("form_pedidos", clear_on_submit=True):
+                    col_a, col_b = st.columns(2)
+                    nome_cliente = col_a.text_input("Nome do Cliente")
+                    data_entrega = col_b.date_input("Data Limite para Entrega")
 
-                    st.success(f"✅ Pedido salvo! (R$ {valor_total:.2f})")
+                    st.divider()
+                    produto_vendido = st.text_input("Produto/Serviço Encomendado")
+
+                    col_c, col_d = st.columns(2)
+                    qtd_vendida = col_c.number_input("Quantidade", min_value=1, step=1)
+                    valor_total = col_d.number_input("Valor Total Combinado (R$)", min_value=0.0, step=0.5, format="%.2f")
+
+                    submit_pedido = st.form_submit_button("Registrar Encomenda", type="primary")
+
+                    if submit_pedido and nome_cliente and produto_vendido:
+                        data_registro = datetime.now().strftime("%d/%m/%Y")
+
+                        st.session_state.vendas.append({
+                            'Tipo': 'Pedido', 'Data': data_registro, 'Cliente': nome_cliente,
+                            'Produto': produto_vendido, 'Qtd': qtd_vendida,
+                            'Total (R$)': valor_total, 'Entrega': data_entrega.strftime("%d/%m/%Y")
+                        })
+                        salvar_dados(st.session_state.vendas, ARQ_VENDAS)
+
+                        st.session_state.financeiro.append({
+                            'Data': data_registro, 'Tipo': 'Entrada',
+                            'Descrição': f"Encomenda: {produto_vendido} ({nome_cliente})", 'Valor (R$)': valor_total
+                        })
+                        salvar_dados(st.session_state.financeiro, ARQ_FINANCEIRO)
+
+                        st.success(f"✅ Encomenda salva! (R$ {valor_total:.2f})")
 
         with aba2:
             if st.session_state.vendas:
                 df_vendas = pd.DataFrame(st.session_state.vendas)
-                st.dataframe(df_vendas, use_container_width=True)
+                
+                # Garante compatibilidade com cadastros antigos adicionando 'Tipo' onde não existir
+                if 'Tipo' not in df_vendas.columns:
+                    df_vendas['Tipo'] = 'Pedido'
+
+                st.subheader("🛍️ Vendas Realizadas (Pronta Entrega)")
+                df_vendas_prontas = df_vendas[df_vendas['Tipo'] == 'Venda'].drop(columns=['Tipo'], errors='ignore')
+                if not df_vendas_prontas.empty:
+                    st.dataframe(df_vendas_prontas, use_container_width=True)
+                else:
+                    st.info("Nenhuma venda de pronta entrega realizada.")
+                
+                st.divider()
+
+                st.subheader("📦 Pedidos e Encomendas")
+                df_pedidos_encomendas = df_vendas[df_vendas['Tipo'] == 'Pedido'].drop(columns=['Tipo'], errors='ignore')
+                if not df_pedidos_encomendas.empty:
+                    st.dataframe(df_pedidos_encomendas, use_container_width=True)
+                else:
+                    st.info("Nenhum pedido ou encomenda registrado.")
             else:
                 st.info("Nenhuma venda ou pedido realizado ainda.")
 
