@@ -176,7 +176,33 @@ if not st.session_state.logado:
                         st.session_state.etapa_cadastro = 1 # Reseta para o próximo que for cadastrar
                     else:
                         st.error("Preencha todos os campos!")
+# ... (resto do seu código da Etapa 3) ...
+                if st.button("Finalizar Cadastro", type="primary", use_container_width=True):
+                    if novo_usuario and nova_senha:
+                        # Salva o novo usuário na lista e no arquivo
+                        st.session_state.usuarios.append({
+                            'email': st.session_state.email_temp, 
+                            'usuario': novo_usuario, 
+                            'senha': nova_senha
+                        })
+                        salvar_dados(st.session_state.usuarios, ARQ_USUARIOS)
+                        
+                        st.success("✅ Cadastro concluído! Vá para a aba 'Entrar' e faça login.")
+                        st.session_state.etapa_cadastro = 1 # Reseta para o próximo que for cadastrar
+                    else:
+                        st.error("Preencha todos os campos!")
+        st.markdown("""
+            <div style='text-align: center; margin-top: 50px;'>
+                <p style='font-family: "Courier New", Courier, monospace; font-size: 13px; color: #888888; letter-spacing: 0.5px;'>
+                    Desenvolvido por <span style='font-weight: bold; color: #ff4b4b;'>N.campos soluções</span>
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+        # -------------------------------------------------------------
 
+# 4. Sistema Principal
+else:
+    st.sidebar.title("🪡 Menu Principal")
 # 4. Sistema Principal
 else:
     st.sidebar.title("🪡 Menu Principal")
