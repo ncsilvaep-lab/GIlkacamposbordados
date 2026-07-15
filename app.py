@@ -50,6 +50,13 @@ def salvar_dados(dados, arquivo):
     df = pd.DataFrame(dados)
     df.to_csv(arquivo, index=False)
 
+# Função para evitar erros de cálculo com dados antigos que usavam "-"
+def converter_valor(valor):
+    try:
+        return float(valor)
+    except:
+        return 0.0
+
 # 2. Inicialização do Banco de Dados
 if 'logado' not in st.session_state:
     st.session_state.logado = False
@@ -198,7 +205,7 @@ else:
                     tamanho = col2.text_input("Tamanho (Ex: P, M, Único)")
 
                     col3, col4 = st.columns(2)
-                    valor = col3.number_input("Valor (R$)", min_value=0.0, step=0.5, format="%.2f")
+                    valor = col3.number_input("Valor de Venda (R$)", min_value=0.0, step=0.5, format="%.2f")
                     disponibilidade = col4.number_input("Disponibilidade (Quantidade)", min_value=0, step=1)
 
                     submit_peca = st.form_submit_button("Cadastrar Peça Pronta", type="primary")
@@ -215,12 +222,14 @@ else:
             elif categoria == "Material":
                 with st.form("form_material", clear_on_submit=True):
                     col1, col2 = st.columns(2)
-                    produto = col1.text_input("Nome do Material")
+                    produto = col1.text_input("Nome do Material / Insumo")
                     cor = col2.text_input("Cor")
 
-                    col3, col4 = st.columns(2)
-                    metragem = col3.number_input("Metragem (Metros)", min_value=0.0, step=0.1)
-                    foto = col4.file_uploader("Foto do Material", type=["png", "jpg", "jpeg"])
+                    # ATUALIZAÇÃO: Campo de valor do material adicionado
+                    col3, col4, col5 = st.columns(3)
+                    metragem = col3.number_input("Metragem/Qtd", min_value=0.0, step=0.1)
+                    valor_material = col4.number_input("Valor de Custo Total (R$)", min_value=0.0, step=0.5, format="%.2f")
+                    foto = col5.file_uploader("Foto do Material", type=["png", "jpg", "jpeg"])
 
                     submit_material = st.form_submit_button("Cadastrar Material", type="primary")
 
@@ -228,13 +237,12 @@ else:
                         nome_foto = foto.name if foto is not None else "Sem foto"
                         st.session_state.estoque.append({
                             'Categoria': 'Material', 'Produto': produto,
-                            'Tamanho': '-', 'Valor (R$)': '-', 'Quantidade': '-',
+                            'Tamanho': '-', 'Valor (R$)': valor_material, 'Quantidade': '-',
                             'Cor': cor, 'Metragem': metragem, 'Foto': nome_foto
                         })
                         salvar_dados(st.session_state.estoque, ARQ_ESTOQUE)
                         st.success(f"✅ Material '{produto}' salvo!")
 
-        # ATUALIZAÇÃO: Exibição do Estoque Separada
         with aba2:
             if st.session_state.estoque:
                 df_estoque = pd.DataFrame(st.session_state.estoque)
@@ -265,23 +273,20 @@ else:
         aba1, aba2 = st.tabs(["🛒 Novo Registro", "🧾 Histórico"])
 
         with aba1:
-            # ATUALIZAÇÃO: Separador de Venda de Estoque e Encomenda
             tipo_registro = st.radio("O que você deseja registrar?", ["Venda de Estoque (Pronta Entrega)", "Novo Pedido (Encomenda)"], horizontal=True)
             st.divider()
 
             if tipo_registro == "Venda de Estoque (Pronta Entrega)":
-                # Busca apenas peças prontas que tem quantidade maior que zero
                 pecas_disponiveis = [item for item in st.session_state.estoque if item['Categoria'] == 'Peça Pronta' and str(item['Quantidade']).isdigit() and int(item['Quantidade']) > 0]
                 
                 if not pecas_disponiveis:
-                    st.warning("⚠️ Não há peças prontas com estoque disponível no momento. Cadastre novas peças ou ajuste o estoque.")
+                    st.warning("⚠️ Não há peças prontas com estoque disponível no momento.")
                 else:
                     with st.form("form_venda_estoque", clear_on_submit=True):
                         col_a, col_b = st.columns(2)
                         nome_cliente = col_a.text_input("Nome do Cliente")
                         data_venda = col_b.date_input("Data da Venda")
                         
-                        # Cria as opções para o menu suspenso (Selectbox)
                         opcoes_select = {f"{p['Produto']} (Tam: {p['Tamanho']}) - R$ {p['Valor (R$)']} | Disp: {p['Quantidade']} un": p for p in pecas_disponiveis}
                         
                         peca_selecionada = st.selectbox("Selecione a Peça do Estoque", list(opcoes_select.keys()))
@@ -301,7 +306,6 @@ else:
                                 valor_total = (float(peca_ref['Valor (R$)']) * qtd_vendida) - desconto
                                 data_str = data_venda.strftime("%d/%m/%Y")
                                 
-                                # Reduz a quantidade no estoque (dá baixa)
                                 for p in st.session_state.estoque:
                                     if p == peca_ref:
                                         p['Quantidade'] = int(p['Quantidade']) - qtd_vendida
@@ -360,8 +364,6 @@ else:
         with aba2:
             if st.session_state.vendas:
                 df_vendas = pd.DataFrame(st.session_state.vendas)
-                
-                # Garante compatibilidade com cadastros antigos adicionando 'Tipo' onde não existir
                 if 'Tipo' not in df_vendas.columns:
                     df_vendas['Tipo'] = 'Pedido'
 
@@ -387,37 +389,72 @@ else:
     # MÓDULO 3: FINANCEIRO
     # ----------------------------------------
     elif escolha == "📊 Financeiro":
-        st.header("Gestão Financeira")
+        st.header("Gestão Financeira e Relatórios")
 
-        receitas = sum(float(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Entrada')
-        despesas = sum(float(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Saída')
-        saldo = receitas - despesas
+        # ATUALIZAÇÃO: Cálculo separado de Fixos e Variáveis + Valor de Estoque
+        receitas = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Entrada')
+        saidas = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Saída')
+        custos_fixos = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i.get('Tipo') == 'Custo Fixo')
+        
+        saldo_livre = receitas - saidas - custos_fixos
+        valor_estoque = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.estoque if i['Categoria'] == 'Material')
 
-        col1, col2, col3 = st.columns(3)
+        # Painel de métricas financeiras
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("Entradas (Receitas)", f"R$ {receitas:.2f}")
-        col2.metric("Saídas (Despesas)", f"R$ {despesas:.2f}")
-        col3.metric("Saldo Atual", f"R$ {saldo:.2f}", delta=f"R$ {saldo:.2f}", delta_color="normal")
+        col2.metric("Saídas (Variáveis/Insumos)", f"R$ {saidas:.2f}")
+        col3.metric("Custos Fixos", f"R$ {custos_fixos:.2f}")
+        col4.metric("Saldo Líquido", f"R$ {saldo_livre:.2f}", delta=f"R$ {saldo_livre:.2f}", delta_color="normal")
+        
+        st.info(f"🧵 **Capital investido em Estoque (Materiais e Insumos):** R$ {valor_estoque:.2f}")
 
         st.divider()
-        aba1, aba2 = st.tabs(["💸 Lançar Despesa", "📈 Extrato Completo"])
+        aba1, aba2 = st.tabs(["💸 Lançar Movimentação", "📈 Extrato Completo"])
 
         with aba1:
-            with st.form("form_despesas", clear_on_submit=True):
-                desc_despesa = st.text_input("Descrição da Despesa")
+            with st.form("form_financeiro", clear_on_submit=True):
+                # ATUALIZAÇÃO: Escolha do tipo de despesa/entrada
+                tipo_movimento = st.radio(
+                    "Tipo de Movimentação:", 
+                    ["Saída (Variável - ex: compra de linha, frete)", "Custo Fixo (ex: aluguel, luz, internet)", "Entrada Extra"], 
+                    horizontal=True
+                )
+                
+                desc_despesa = st.text_input("Descrição")
                 valor_despesa = st.number_input("Valor (R$)", min_value=0.01, step=0.5, format="%.2f")
-                submit_despesa = st.form_submit_button("Registrar Despesa", type="primary")
+                submit_financeiro = st.form_submit_button("Registrar Lançamento", type="primary")
 
-                if submit_despesa and desc_despesa:
+                if submit_financeiro and desc_despesa:
+                    tipo_final = "Saída"
+                    if "Fixo" in tipo_movimento:
+                        tipo_final = "Custo Fixo"
+                    elif "Entrada" in tipo_movimento:
+                        tipo_final = "Entrada"
+
                     st.session_state.financeiro.append({
                         'Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        'Tipo': 'Saída', 'Descrição': desc_despesa, 'Valor (R$)': valor_despesa
+                        'Tipo': tipo_final, 'Descrição': desc_despesa, 'Valor (R$)': valor_despesa
                     })
                     salvar_dados(st.session_state.financeiro, ARQ_FINANCEIRO)
-                    st.success("✅ Despesa salva com sucesso!")
+                    st.success(f"✅ Lançamento de '{tipo_final}' salvo com sucesso!")
+                    st.rerun()
 
         with aba2:
             if st.session_state.financeiro:
                 df_financeiro = pd.DataFrame(st.session_state.financeiro)
-                st.dataframe(df_financeiro, use_container_width=True)
+                
+                # ATUALIZAÇÃO: Relatório filtrável
+                st.subheader("Relatório Financeiro")
+                filtro = st.selectbox("Filtrar por tipo:", ["Todos", "Entrada", "Saída", "Custo Fixo"])
+                
+                if filtro != "Todos":
+                    df_exibir = df_financeiro[df_financeiro['Tipo'] == filtro]
+                else:
+                    df_exibir = df_financeiro
+                
+                if not df_exibir.empty:
+                    st.dataframe(df_exibir, use_container_width=True)
+                else:
+                    st.info(f"Nenhum lançamento do tipo '{filtro}' encontrado.")
             else:
-                st.info("Nenhuma movimentação financeira.")
+                st.info("Nenhuma movimentação financeira registrada.")
