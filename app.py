@@ -13,8 +13,8 @@ st.set_page_config(page_title="Gilka Campos Bordados", page_icon="🪡", layout=
 # CONFIGURAÇÃO DE E-MAIL (REMETENTE)
 # ----------------------------------------
 # VOCÊ PRECISA PREENCHER AQUI COM SEU E-MAIL E SENHA DE APLICATIVO DO GMAIL
-EMAIL_REMETENTE = "natanaelcampossilva2006@gmail.com" 
-SENHA_APP = "ezuhuoqmlbdfiqwo"
+EMAIL_REMETENTE = "seu_email@gmail.com" 
+SENHA_APP = "sua_senha_de_app_aqui"
 
 def enviar_codigo_email(email_destino, codigo):
     try:
@@ -115,16 +115,15 @@ if not st.session_state.logado:
                 st.write("Digite seu e-mail para receber um código de validação:")
                 email_input = st.text_input("📧 Seu E-mail")
                 
-                if st.button("Enviar Código", use_container_width=True):
+                # ADICIONADO: type="primary" para deixar o botão vermelho
+                if st.button("Enviar Código", type="primary", use_container_width=True):
                     if "@" in email_input and "." in email_input:
                         # Gera um código de 6 dígitos
                         codigo = str(random.randint(100000, 999999))
                         st.session_state.codigo_gerado = codigo
                         st.session_state.email_temp = email_input
                         
-                        # --- PARA TESTES --- 
-                        # Se você não configurar o email ali em cima, o sistema falha. 
-                        # Para você testar ANTES de configurar o e-mail real, eu mostro o código na tela de sucesso.
+                        # Tenta enviar o email
                         sucesso_email = enviar_codigo_email(email_input, codigo)
                         
                         if sucesso_email:
@@ -133,7 +132,7 @@ if not st.session_state.logado:
                             st.rerun()
                         else:
                             st.warning(f"Erro ao enviar e-mail. Para testes, seu código é: {codigo}")
-                            # Avança mesmo dando erro apenas para você conseguir testar o sistema
+                            # Avança mesmo dando erro apenas para testes
                             st.session_state.etapa_cadastro = 2 
                     else:
                         st.error("Por favor, digite um e-mail válido.")
@@ -176,21 +175,10 @@ if not st.session_state.logado:
                         st.session_state.etapa_cadastro = 1 # Reseta para o próximo que for cadastrar
                     else:
                         st.error("Preencha todos os campos!")
-# ... (resto do seu código da Etapa 3) ...
-                if st.button("Finalizar Cadastro", type="primary", use_container_width=True):
-                    if novo_usuario and nova_senha:
-                        # Salva o novo usuário na lista e no arquivo
-                        st.session_state.usuarios.append({
-                            'email': st.session_state.email_temp, 
-                            'usuario': novo_usuario, 
-                            'senha': nova_senha
-                        })
-                        salvar_dados(st.session_state.usuarios, ARQ_USUARIOS)
-                        
-                        st.success("✅ Cadastro concluído! Vá para a aba 'Entrar' e faça login.")
-                        st.session_state.etapa_cadastro = 1 # Reseta para o próximo que for cadastrar
-                    else:
-                        st.error("Preencha todos os campos!")
+
+        # -------------------------------------------------------------
+        # ADICIONADO: Assinatura de Desenvolvimento N.campos soluções
+        # -------------------------------------------------------------
         st.markdown("""
             <div style='text-align: center; margin-top: 50px;'>
                 <p style='font-family: "Courier New", Courier, monospace; font-size: 13px; color: #888888; letter-spacing: 0.5px;'>
@@ -200,9 +188,6 @@ if not st.session_state.logado:
         """, unsafe_allow_html=True)
         # -------------------------------------------------------------
 
-# 4. Sistema Principal
-else:
-    st.sidebar.title("🪡 Menu Principal")
 # 4. Sistema Principal
 else:
     st.sidebar.title("🪡 Menu Principal")
