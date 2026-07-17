@@ -70,8 +70,9 @@ if 'financeiro' not in st.session_state:
     st.session_state.financeiro = carregar_dados(ARQ_FINANCEIRO)
 if 'usuarios' not in st.session_state:
     st.session_state.usuarios = carregar_dados(ARQ_USUARIOS)
+    # ALTERAÇÃO: Definição do administrador padrão com 'admin' e '12347'
     if len(st.session_state.usuarios) == 0:
-        st.session_state.usuarios.append({'email': 'admin', 'usuario': 'gilka', 'senha': '123'})
+        st.session_state.usuarios.append({'email': 'admin@gilkabordados.com', 'usuario': 'admin', 'senha': '12347'})
         salvar_dados(st.session_state.usuarios, ARQ_USUARIOS)
 
 if 'etapa_cadastro' not in st.session_state:
@@ -95,7 +96,8 @@ if not st.session_state.logado:
             usuario = st.text_input("👤 Usuário")
             senha = st.text_input("🔑 Senha", type="password")
 
-            if st.button("Entrar no Sistema", type="primary", use_container_width=True):
+            # ALTERAÇÃO: Botão alterado de "Entrar no Sistema" para "Entrar"
+            if st.button("Entrar", type="primary", use_container_width=True):
                 login_sucesso = False
                 for usr in st.session_state.usuarios:
                     if str(usr['usuario']) == usuario and str(usr['senha']) == senha:
@@ -225,7 +227,6 @@ else:
                     produto = col1.text_input("Nome do Material / Insumo")
                     cor = col2.text_input("Cor")
 
-                    # ATUALIZAÇÃO: Campo de valor do material adicionado
                     col3, col4, col5 = st.columns(3)
                     metragem = col3.number_input("Metragem/Qtd", min_value=0.0, step=0.1)
                     valor_material = col4.number_input("Valor de Custo Total (R$)", min_value=0.0, step=0.5, format="%.2f")
@@ -391,7 +392,6 @@ else:
     elif escolha == "📊 Financeiro":
         st.header("Gestão Financeira e Relatórios")
 
-        # ATUALIZAÇÃO: Cálculo separado de Fixos e Variáveis + Valor de Estoque
         receitas = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Entrada')
         saidas = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i['Tipo'] == 'Saída')
         custos_fixos = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.financeiro if i.get('Tipo') == 'Custo Fixo')
@@ -399,7 +399,6 @@ else:
         saldo_livre = receitas - saidas - custos_fixos
         valor_estoque = sum(converter_valor(i['Valor (R$)']) for i in st.session_state.estoque if i['Categoria'] == 'Material')
 
-        # Painel de métricas financeiras
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Entradas (Receitas)", f"R$ {receitas:.2f}")
         col2.metric("Saídas (Variáveis/Insumos)", f"R$ {saidas:.2f}")
@@ -413,7 +412,6 @@ else:
 
         with aba1:
             with st.form("form_financeiro", clear_on_submit=True):
-                # ATUALIZAÇÃO: Escolha do tipo de despesa/entrada
                 tipo_movimento = st.radio(
                     "Tipo de Movimentação:", 
                     ["Saída (Variável - ex: compra de linha, frete)", "Custo Fixo (ex: aluguel, luz, internet)", "Entrada Extra"], 
@@ -443,7 +441,6 @@ else:
             if st.session_state.financeiro:
                 df_financeiro = pd.DataFrame(st.session_state.financeiro)
                 
-                # ATUALIZAÇÃO: Relatório filtrável
                 st.subheader("Relatório Financeiro")
                 filtro = st.selectbox("Filtrar por tipo:", ["Todos", "Entrada", "Saída", "Custo Fixo"])
                 
